@@ -1,9 +1,9 @@
 const { Telegraf } = require('telegraf');
 const http = require('http');
 
-const BOT_TOKEN = '8711976799:AAGX6_DMpNYCuscp_jZuzgdlMhh1kC0POvk';
-const YOUR_CHAT_ID = '8196513650';
-const SHOP_URL = 'https://telegramshop.vercel.app';
+const BOT_TOKEN = process.env.BOT_TOKEN || 'PASTE_NEW_BOT_TOKEN_HERE';
+const YOUR_CHAT_ID = process.env.YOUR_CHAT_ID || 'PASTE_YOUR_CHAT_ID_HERE';
+const SHOP_URL = process.env.SHOP_URL || 'https://telegramshop.vercel.app';
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -67,15 +67,35 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        const items = Array.isArray(data.items) ? data.items : [];
-        const total = Number(data.total || 0);
 
-        const itemLines = items.map((item, i) =>
+        const cart = Array.isArray(data.cart) ? data.cart : [];
+        const total = Number(data.total || 0);
+        const customer = data.customer || {};
+
+        if (cart.length === 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Empty cart' }));
+          return;
+        }
+
+        const itemLines = cart.map((item, i) =>
           `${i + 1}. ${item.name} - £${item.price}`
         ).join('\n');
 
         const message =
-          `New order\n\n${itemLines}\n\nTotal: £${total}`;
+`🧾 NEW ORDER
+
+${itemLines}
+
+💰 Total: £${total}
+
+👤 Customer:
+Name: ${customer.name || 'N/A'}
+Telegram: ${customer.telegram || 'N/A'}
+Address: ${customer.address || 'N/A'}
+
+📝 Notes:
+${customer.notes || 'None'}`;
 
         await bot.telegram.sendMessage(YOUR_CHAT_ID, message);
 
@@ -84,7 +104,7 @@ const server = http.createServer((req, res) => {
       } catch (err) {
         console.error('Checkout error:', err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false }));
+        res.end(JSON.stringify({ ok: false, error: 'Checkout failed' }));
       }
     });
 
@@ -92,7 +112,7 @@ const server = http.createServer((req, res) => {
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ ok: false }));
+  res.end(JSON.stringify({ ok: false, error: 'Not found' }));
 });
 
 const PORT = process.env.PORT || 3000;
