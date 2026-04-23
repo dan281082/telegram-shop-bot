@@ -57,33 +57,36 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/checkout') {
-    let body = '';
+ if (req.method === 'POST' && req.url === '/checkout') {
+  let body = '';
 
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
+  req.on('data', chunk => {
+    body += chunk.toString();
+  });
 
-    req.on('end', async () => {
-      try {
-        const data = JSON.parse(body);
+  req.on('end', async () => {
+    try {
+      const data = JSON.parse(body);
+      const cart = Array.isArray(data.cart) ? data.cart : [];
+      const total = Number(data.total || 0);
+      const customer = data.customer || {};
 
-        const cart = Array.isArray(data.cart) ? data.cart : [];
-        const total = Number(data.total || 0);
-        const customer = data.customer || {};
+      if (cart.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Empty cart' }));
+        return;
+      }
 
-        if (cart.length === 0) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: 'Empty cart' }));
-          return;
-        }
+      const orderId = 'PV-' + Math.floor(1000 + Math.random() * 9000);
 
-        const itemLines = cart.map((item, i) =>
-          `${i + 1}. ${item.name} - £${item.price}`
-        ).join('\n');
+      const itemLines = cart.map((item, i) =>
+        `${i + 1}. ${item.name} - £${item.price}`
+      ).join('\n');
 
-        const message =
+      const message =
 `🧾 NEW ORDER
+
+Order ID: ${orderId}
 
 ${itemLines}
 
@@ -95,20 +98,27 @@ Telegram: ${customer.telegram || 'N/A'}
 Address: ${customer.address || 'N/A'}
 
 📝 Notes:
-${customer.notes || 'None'}`;
+${customer.notes || 'None'}
 
-        await bot.telegram.sendMessage(YOUR_CHAT_ID, message);
+💸 Payment:
+USDT
+Network: ERC20
+Wallet: 0x7333778c20Ed7271a07EA92c39f1782794357a5d
+Status: Awaiting payment`;
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (err) {
-        console.error('Checkout error:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Checkout failed' }));
-      }
-    });
+      await bot.telegram.sendMessage(YOUR_CHAT_ID, message);
 
-    return;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, orderId }));
+    } catch (err) {
+      console.error('Checkout error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Checkout failed' }));
+    }
+  });
+
+  return;
+}
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });
