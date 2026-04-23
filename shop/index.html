@@ -14,7 +14,10 @@
       font-size: 28px;
       margin-bottom: 20px;
     }
-    .product {
+    h2 {
+      margin-top: 0;
+    }
+    .product, .payment-box {
       background: white;
       border-radius: 12px;
       padding: 16px;
@@ -34,6 +37,11 @@
       border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
+    }
+    .secondary-btn {
+      background: #444;
+      margin-right: 8px;
+      margin-bottom: 8px;
     }
     .cart {
       position: fixed;
@@ -57,48 +65,110 @@
       min-height: 80px;
       resize: vertical;
     }
+    .hidden {
+      display: none;
+    }
+    .wallet-box {
+      word-break: break-all;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 8px 0 12px 0;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #6b5200;
+      border: 1px solid #f0d98a;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    .success {
+      background: #eaf7ea;
+      color: #1e5c1e;
+      border: 1px solid #b9e0b9;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
-  <h1>Pentarchy vials</h1>
+  <div id="shopSection">
+    <h1>Pentarchy vials</h1>
 
-  <div class="product">
-    <h3>R20</h3>
-    <div class="price">£120</div>
-    <button type="button" onclick="addToCart('R20', 120)">Add to cart</button>
+    <div class="product">
+      <h3>R20</h3>
+      <div class="price">£120</div>
+      <button type="button" onclick="addToCart('R20', 120)">Add to cart</button>
+    </div>
+
+    <div class="product">
+      <h3>R30</h3>
+      <div class="price">£165</div>
+      <button type="button" onclick="addToCart('R30', 165)">Add to cart</button>
+    </div>
+
+    <div class="product">
+      <h3>R40</h3>
+      <div class="price">£175</div>
+      <button type="button" onclick="addToCart('R40', 175)">Add to cart</button>
+    </div>
+
+    <h3>Customer Details</h3>
+
+    <div class="product">
+      <input id="name" placeholder="Full Name" style="width:100%; padding:10px; margin-bottom:8px;" />
+      <input id="telegram" placeholder="Telegram @username" style="width:100%; padding:10px; margin-bottom:8px;" />
+      <textarea id="address" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:8px;"></textarea>
+      <textarea id="notes" placeholder="Notes (optional)" style="width:100%; padding:10px;"></textarea>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="cart">
+      <div id="cartText">Cart: 0 items | £0</div>
+      <br>
+      <button type="button" onclick="checkout()">Checkout</button>
+    </div>
   </div>
 
-  <div class="product">
-    <h3>R30</h3>
-    <div class="price">£165</div>
-    <button type="button" onclick="addToCart('R30', 165)">Add to cart</button>
-  </div>
+  <div id="paymentSection" class="hidden">
+    <h1>Payment</h1>
 
-  <div class="product">
-    <h3>R40</h3>
-    <div class="price">£175</div>
-    <button type="button" onclick="addToCart('R40', 175)">Add to cart</button>
-  </div>
+    <div class="payment-box">
+      <div class="success">Order received successfully.</div>
 
-  <h3>Customer Details</h3>
+      <h2 id="paymentOrderId">Order ID: </h2>
+      <p id="paymentTotal"><strong>Total:</strong> £0</p>
+      <p><strong>Pay with:</strong> USDT</p>
+      <p><strong>Network:</strong> ERC20</p>
 
-  <div class="product">
-    <input id="name" placeholder="Full Name" style="width:100%; padding:10px; margin-bottom:8px;" />
-    <input id="telegram" placeholder="Telegram @username" style="width:100%; padding:10px; margin-bottom:8px;" />
-    <textarea id="address" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:8px;"></textarea>
-    <textarea id="notes" placeholder="Notes (optional)" style="width:100%; padding:10px;"></textarea>
-  </div>
+      <p><strong>Wallet address:</strong></p>
+      <div class="wallet-box" id="walletAddress">0x7333778c20Ed7271a07EA92c39f1782794357a5d</div>
 
-  <div class="spacer"></div>
+      <button class="secondary-btn" type="button" onclick="copyWallet()">Copy Wallet</button>
+      <button class="secondary-btn" type="button" onclick="copyOrderId()">Copy Order ID</button>
 
-  <div class="cart">
-    <div id="cartText">Cart: 0 items | £0</div>
-    <br>
-    <button type="button" onclick="checkout()">Checkout</button>
+      <div class="warning">
+        <strong>Important:</strong><br>
+        Send on <strong>ERC20 only</strong>.<br>
+        Do not use TRC20, BEP20, or any other network.<br><br>
+        After payment, send your tx hash and order ID to the bot.
+      </div>
+    </div>
+
+    <div class="payment-box">
+      <button type="button" onclick="backToShop()">Back to shop</button>
+    </div>
   </div>
 
   <script>
     let cart = [];
+    let latestOrderId = "";
 
     function addToCart(name, price) {
       cart.push({ name, price });
@@ -109,6 +179,37 @@
       const total = cart.reduce((sum, item) => sum + item.price, 0);
       document.getElementById("cartText").innerText =
         "Cart: " + cart.length + " items | £" + total;
+    }
+
+    function showPaymentPage(orderId, total) {
+      latestOrderId = orderId;
+      document.getElementById("paymentOrderId").innerText = "Order ID: " + orderId;
+      document.getElementById("paymentTotal").innerHTML = "<strong>Total:</strong> £" + total;
+
+      document.getElementById("shopSection").classList.add("hidden");
+      document.getElementById("paymentSection").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    function backToShop() {
+      document.getElementById("paymentSection").classList.add("hidden");
+      document.getElementById("shopSection").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    async function copyWallet() {
+      const wallet = "0x7333778c20Ed7271a07EA92c39f1782794357a5d";
+      await navigator.clipboard.writeText(wallet);
+      alert("Wallet copied");
+    }
+
+    async function copyOrderId() {
+      if (!latestOrderId) {
+        alert("No order ID yet");
+        return;
+      }
+      await navigator.clipboard.writeText(latestOrderId);
+      alert("Order ID copied");
     }
 
     async function checkout() {
@@ -150,7 +251,7 @@
         const result = await response.json();
 
         if (result.ok) {
-          alert("Order sent to Telegram");
+          showPaymentPage(result.orderId, total);
 
           cart = [];
           updateCart();
