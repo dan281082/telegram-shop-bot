@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pentarchy vials</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      margin: 0;
+      background: #f7f7f7;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .product {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .price {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    button {
+      background: black;
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .cart {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #ddd;
+      padding: 12px 16px;
+    }
+    .spacer {
+      height: 110px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pentarchy vials</h1>
+
+  <div class="product">
+    <h3>R20</h3>
+    <div class="price">£120</div>
+    <button type="button" onclick="addToCart('R20', 120)">Add to cart</button>
+  </div>
+
+  <div class="product">
+    <h3>R30</h3>
+    <div class="price">£165</div>
+    <button type="button" onclick="addToCart('R30', 165)">Add to cart</button>
+  </div>
+
+  <div class="product">
+    <h3>R40</h3>
+    <div class="price">£175</div>
+    <button type="button" onclick="addToCart('R40', 175)">Add to cart</button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="cart">
+    <div id="cartText">Cart: 0 items | £0</div>
+    <br>
+    <button type="button" onclick="checkout()">Checkout</button>
+  </div>
+
+  <script>
+    let cart = [];
+
+    function addToCart(name, price) {
+      cart.push({ name, price });
+      updateCart();
+    }
+
+    function updateCart() {
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById("cartText").innerText =
+        "Cart: " + cart.length + " items | £" + total;
+    }
+
+    async function checkout() {
+      if (cart.length === 0) {
+        alert("Cart is empty");
+        return;
+      }
+
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+      try {
+        const response = await fetch('http://localhost:3000/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            items: cart,
+            total: total
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+          alert("Order sent to Telegram");
+          cart = [];
+          updateCart();
+        } else {
+          alert("Order failed");
+        }
+      } catch (err) {
+        alert("Could not reach backend");
+      }
+    }
+  </script>
+</body>
+</html>
